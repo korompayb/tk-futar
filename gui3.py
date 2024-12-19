@@ -7,10 +7,12 @@ from threading import Timer
 
 
 
+
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"assets/frame0")
 
 
+"""-------------------------------------------------------------------------------------- Funkciók és függvények -----------------------------------------------------------------------------------------"""
 
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
@@ -23,6 +25,10 @@ print("ELINDULT A PROGRAM")
 
 button_click_sound = relative_to_assets("bkkfutar_btnpress.wav")
 error_sound = relative_to_assets("bkkfutar_longpiep.wav")
+
+
+
+
 
 
 
@@ -85,13 +91,10 @@ def show_boot_screen():
     boot_message.place(relx=0.5, rely=0.5, anchor="center")  # Középre helyezzük a szöveget
 
     # 1 másodperc után eltüntetjük az üzenetet
-    window.after(1000, lambda: boot_message.place_forget())
+    window.after(500, lambda: boot_message.place_forget())
 
     # Hátteret képpel helyettesítjük, miután az üzenet eltűnt
-    window.after(1000, lambda: show_boot_image(boot_frame))
-
-
-
+    window.after(500, lambda: show_boot_image(boot_frame))
 
 def show_confirm_screen():
     def rectangle_clicked(event):
@@ -135,8 +138,8 @@ def show_boot_image(boot_frame):
     boot_background.place(x=0, y=0, width=689, height=416)  # Kép kitöltése az ablak teljes területén
 
     # 3 másodperc után eltüntetjük a képet és folytatódik a bejelentkezési képernyő
-    window.after(2000, lambda: boot_frame.destroy())  # Eltünteti a hátteret és a boot képernyőt
-    window.after(2500, lambda: show_login_screen())  # A bejelentkezési képernyő következik
+    window.after(500, lambda: boot_frame.destroy())  # Eltünteti a hátteret és a boot képernyőt
+    window.after(500, lambda: show_login_screen())  # A bejelentkezési képernyő következik
 
 
 def show_login_screen():
@@ -176,9 +179,17 @@ def display_route(vehicle_id):
 
 
 
+
+
+
+
+
+
+
+""" ------------------------------------------------------------------------------------------ Vászon és ablak beállítása --------------------------------------------------------------------------------------- """
+
 window = Tk()
 window.title("IVU Szimuláció")
-window.winfo_toplevel().wm_title("IVU Szimuláció")
 icon = PhotoImage(file=relative_to_assets("logo.png"))  # A saját ikonod fájlja
 window.iconphoto(True, icon)
 window.geometry("689x416")
@@ -194,6 +205,38 @@ canvas = Canvas(
     relief="ridge"
 )
 canvas.place(x=0, y=0)
+
+current_time_var = StringVar()
+current_date_var = StringVar()
+
+def update_current_time():
+    current_time = time.strftime("%H:%M:%SS.%f")[:-3]  # Get current time with milliseconds
+    current_time_var.set(current_time)
+    canvas.itemconfig(time_label, text=current_time_var.get())  # Update the text on the canvas
+    canvas.after(1, update_current_time)  # Update every millisecond
+
+def update_current_date():
+    # Get the current date and format it
+    current_date = time.strftime("%Y_%m_%d")  # Get date in YYYY_MM_DD format
+    # Get the current weekday in Hungarian
+    weekday_hungarian = time.strftime("%a")  # Get abbreviated weekday name
+    hungarian_weekdays = {
+        "Mon": "Hé",
+        "Tue": "Ke",
+        "Wed": "Sz",
+        "Thu": "Cs",
+        "Fri": "Pé",
+        "Sat": "Szo",
+        "Sun": "Vas"
+    }
+    # Replace the English weekday with Hungarian
+    weekday_hungarian = hungarian_weekdays.get(weekday_hungarian, weekday_hungarian)
+    formatted_date = f"{weekday_hungarian} {current_date}"  # Format the date
+    current_date_var.set(formatted_date)
+    canvas.itemconfig(date_text_id, text=current_date_var.get())  # Update the date on the canvas
+    canvas.after(86400000, update_current_date)  # Update every 24 hours
+
+
 
 canvas.create_rectangle(
     0.0,
@@ -212,8 +255,62 @@ canvas.create_rectangle(
     fill="#595959",
     outline="")
 
+canvas.create_text(
+    2.0,
+    5.0,
+    anchor="nw",
+    text="18100001/",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
+
+canvas.create_text(
+    0.0,
+    27.0,
+    anchor="nw",
+    text="EAF Ecseri-Aszódi u.",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
+
+canvas.create_text(
+    122.0,
+    5.0,
+    anchor="nw",
+    text="181",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
+
+time_label = canvas.create_text(
+    517.0,
+    2.0,
+    anchor="nw",
+    text=current_time_var.get(),  # Initialize with the current time
+    fill="#000000",
+    font=("Inter", 22 * -1)
+)
+
+date_text_id = canvas.create_text(
+    517.0,
+    26.0,
+    anchor="nw",
+    text="Pé 2022_02_11",
+    fill="#000000",
+    font=("Inter Bold", 16 * -1)
+)
+
+canvas.create_text(
+    188.0,
+    5.0,
+    anchor="nw",
+    text="1",
+    fill="#000000",
+    font=("Inter", 20 * -1)
+)
+
+
 boot_message_label = Label(
-    window,
     text="boot",
     bg="#CDCDCD",
     fg="#000000",
@@ -228,7 +325,7 @@ input_label = Label(
     bg="#CDCDCD",
     fg="#000000",
     font=("Inter", 26),
-    width=20,
+    width=10,
     anchor="w"
 )
 input_label.place(x=10.0, y=130.0)
@@ -310,6 +407,8 @@ canvas.create_rectangle(
     fill="#CDCDCD",
     outline="")
 
+
+
 submit_button_image = PhotoImage(file=relative_to_assets("button_submit.png"))
 submit_button = Button(
     image=submit_button_image,
@@ -341,24 +440,73 @@ button_12.place(
     height=23.0
 )
 
-route_display_label = Label(
-    window,
-    text="",
-    bg="#9F9F9F",
-    fg="#000000",
-    font=("Inter", 16)
-)
+route_display_label = Label(window,text="",bg="#9F9F9F",fg="#000000",font=("Inter", 16))
 route_display_label.place_forget()
 
 
-driver_info_label = Label(
-    window,
-    text="",
-    bg="#9F9F9F",
-    fg="#000000",
-    font=("Inter", 16)
-)
+driver_info_label = Label(window,text="",bg="#9F9F9F",fg="#000000",font=("Inter", 16))
 driver_info_label.place(x=500.0, y=60.0)
+
+
+
+
+image_image_1 = PhotoImage(file=relative_to_assets("image_1.png"))
+image_1 = canvas.create_image(323.0,252.0,image=image_image_1)
+
+button_image_15 = PhotoImage(file=relative_to_assets("button_15.png"))
+button_15 = Button(image=button_image_15,borderwidth=0,highlightthickness=0,command=lambda: print("button_15 clicked"),relief="flat")
+button_15.place(x=306.0,y=113.0,width=34.0,height=30.741180419921875)
+
+
+button_image_16 = PhotoImage(file=relative_to_assets("button_16.png"))
+button_16 = Button(image=button_image_16,borderwidth=0,highlightthickness=0,command=lambda: print("button_16 clicked"),relief="flat")
+button_16.place(x=306.0,y=353.0,width=34.0,height=30.741180419921875)
+
+button_image_17 = PhotoImage(file=relative_to_assets("button_17.png"))
+button_17 = Button(image=button_image_17,borderwidth=0,highlightthickness=0,command=lambda: print("button_17 clicked"),relief="flat")
+button_17.place(x=654.0,y=112.0,width=34.0,height=30.741180419921875)
+
+button_image_18 = PhotoImage(file=relative_to_assets("button_18.png"))
+button_18 = Button(image=button_image_18,borderwidth=0,highlightthickness=0,command=lambda: print("button_18 clicked"),relief="flat")
+button_18.place(x=654.0,y=352.0,width=34.0,height=30.741180419921875)
+
+button_image_task = PhotoImage(file=relative_to_assets("button_task.png"))
+button_task = Button(image=button_image_task,borderwidth=0,highlightthickness=0,command=lambda: print("Tevekenyseg clicked"),relief="flat")
+button_task.place(x=2.0,y=51.0,width=134.0,height=54.78265380859375)
+
+
+button_image_send_messages = PhotoImage(file=relative_to_assets("button_sendmessages.png"))
+button_send_messages = Button(image=button_image_send_messages,borderwidth=0,highlightthickness=0,command=lambda: print("Uzenet kuldes clicked"),relief="flat")
+button_send_messages.place(x=140.0,y=51.0,width=134.0,height=54.78265380859375)
+
+button_image_sounds = PhotoImage(file=relative_to_assets("button_22.png"))
+button_sounds = Button(image=button_image_sounds,borderwidth=0,highlightthickness=0,command=lambda: print("Tárolt hangok clicked"),relief="flat")
+button_sounds.place(x=278.0,y=51.0,width=134.0,height=54.78265380859375)
+
+
+button_image_settings = PhotoImage(file=relative_to_assets("button_settings.png"))
+button_settings = Button(image=button_image_settings,borderwidth=0,highlightthickness=0,command=lambda: print("Beallitasok clicked"),relief="flat")
+button_settings.place(x=416.0,y=51.0,width=134.0,height=54.78265380859375)
+
+
+button_image_messages = PhotoImage(file=relative_to_assets("button_messages.png"))
+button_messages = Button(image=button_image_messages,borderwidth=0,highlightthickness=0,command=lambda: print("Uzenetek clicked"),relief="flat")
+button_messages.place(x=554.0,y=51.0,width=134.0,height=54.78265380859375)
+
+image_image_2 = PhotoImage(file=relative_to_assets("image_2.png"))
+image_2 = canvas.create_image(46.61248779296875,248.0,image=image_image_2)
+
+
+canvas.create_rectangle(
+    293.0,
+    5.0,
+    393.0,
+    29.0,
+    fill="#2C9943",
+    outline="")
+
+
+""" ----------------------------------------------------------------------------------------------------- Adatok, JSON --------------------------------------------------------------------------------------------- """
 
 # Data setup
 drivers = {"1": "járműmozgató", "5678": "ttk"}
@@ -400,5 +548,7 @@ current_step = "driver_id"
 window.resizable(False, False)
 
 show_boot_screen()
+update_current_time()
+update_current_date()
 """ display_route('10500001') """
 window.mainloop()
