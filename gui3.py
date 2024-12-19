@@ -1,5 +1,6 @@
 import time
 import os
+from datetime import datetime
 import pygame
 from pathlib import Path
 from tkinter import Tk, Canvas, Button, PhotoImage, StringVar, Label, Frame
@@ -210,10 +211,11 @@ current_time_var = StringVar()
 current_date_var = StringVar()
 
 def update_current_time():
-    current_time = time.strftime("%H:%M:%SS.%f")[:-3]  # Get current time with milliseconds
+    current_time = time.strftime("%H:%M:%S")  # Óra:Perc:Másodperc
     current_time_var.set(current_time)
-    canvas.itemconfig(time_label, text=current_time_var.get())  # Update the text on the canvas
-    canvas.after(1, update_current_time)  # Update every millisecond
+    canvas.itemconfig(time_label, text=current_time_var.get())  # Frissíti a vásznon lévő szöveget
+    canvas.after(1000, update_current_time)  # Frissítés másodpercenként
+
 
 def update_current_date():
     # Get the current date and format it
