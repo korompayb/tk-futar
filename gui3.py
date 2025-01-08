@@ -55,32 +55,73 @@ def handle_number_input(number):
 def clear_input():
     input_var.set("")
 
+def handle_driver_id(input_value):
+    """Kezeli a sofőrazonosító megadását."""
+    if input_value in drivers:
+        boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black")
+        input_var.set("")
+        play_button_click_sound()
+        show_confirm_screen(input_value)
+        return "confirm_driver_id"
+    else:
+        boot_message_label.config(text="Hibás sofőrazonosító!", fg="red")
+        play_error_sound()
+        window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg az azonosítóját!", fg="black"))
+        return "driver_id"
+
+def handle_vehicle_id(input_value):
+    """Kezeli a járműazonosító megadását."""
+    if input_value in routes:
+        boot_message_label.config(text="Járat megadva", fg="green")
+        display_route(input_value)
+        show_operation_buttons()
+        hide_input_elements()  # Elrejtjük a további beviteli mezőket
+        play_button_click_sound()
+        return "completed"
+    else:
+        boot_message_label.config(text="Hibás járműazonosító!", fg="red")
+        play_error_sound()
+        window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black"))
+        return "vehicle_id"
+
 def submit_input():
+    """Fő input kezelő, amely a lépésekhez irányít."""
     global current_step
     input_value = input_var.get()
     if current_step == "driver_id":
-        if input_value in drivers:
-            current_step = "vehicle_id"
-            boot_message_label.config(text="Kérem adja meg a járműazonosítót!")
-
-            input_var.set("")
-            play_button_click_sound()
-        else:
-            boot_message_label.config(text="Hibás sofőrazonosító!", fg="red")
-            play_error_sound()
-            window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg az azonosítóját!", fg="black"))
-
+        current_step = handle_driver_id(input_value)
     elif current_step == "vehicle_id":
-        if input_value in routes:
-            boot_message_label.config(text="Járat megadva", fg="green")
-            display_route(input_value)
-            # Elrejtjük a gombokat és input boxot a járat helyes megadása után
-            hide_input_elements()
-            play_button_click_sound()
-        else:
-            boot_message_label.config(text="Hibás járműazonosító!", fg="red")
-            window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black"))
-            play_error_sound()
+        current_step = handle_vehicle_id(input_value)
+    elif current_step == "confirm_driver_id":
+        display_route(input_value)
+        show_operation_buttons()
+        hide_input_elements()
+        current_step = "vehicle_id"
+
+def show_confirm_screen(input_value):
+    """Megjeleníti a megerősítő képernyőt a sofőrazonosítóval."""
+    # Háttér téglalap
+    confirm_frame = Frame(window, bg="#9F9F9F", width=689, height=416)
+    confirm_frame.place(x=0, y=0)
+
+     # Kattintható téglalap
+    rectangle_id = Canvas(confirm_frame, width=680, height=266, bg="#E2E0FF", highlightthickness=0)
+    rectangle_id.place(x=5, y=111)
+    rectangle_id.bind("<Button-1>", lambda e: proceed_to_vehicle_id(confirm_frame))
+
+    # Szöveg (Label) létrehozása és középre helyezése, az input_value alapján
+    confirm_message = Label(confirm_frame, text=f"{input_value}", fg="#000000", bg="#E2E0FF", font=("Inter", 20))
+    confirm_message.place(relx=0.5, rely=0.5, anchor="center")
+
+   
+
+def proceed_to_vehicle_id(confirm_frame):
+    """Továbbhalad a járműazonosító megadására és visszaállítja az elemeket."""
+    confirm_frame.destroy()
+    boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black")
+    input_var.set("")
+    
+    current_step = "vehicle_id"
 
 def show_boot_screen():
     # Főkeret a teljes ablak lefedéséhez
@@ -96,40 +137,6 @@ def show_boot_screen():
 
     # Hátteret képpel helyettesítjük, miután az üzenet eltűnt
     window.after(500, lambda: show_boot_image(boot_frame))
-
-def show_confirm_screen():
-    def rectangle_clicked(event):
-        play_button_click_sound()
-        # A téglalap színének megváltoztatása
-        canvas.itemconfig(rectangle_id, fill="#FFD700")
-        boot_message.config(bg="#FFD700")
-        # 1 másodperc múlva visszaállítjuk az eredeti színeket
-        window.after(100, lambda: canvas.itemconfig(rectangle_id, fill="#E2E0FF"))
-        window.after(100, lambda: boot_message.config(bg="#E2E0FF"))
-        window.after(200, lambda: canvas.delete("all"))  # Erase canvas after click
-        
-        
-
-    # Canvas létrehozása
-    canvas = Canvas(window, bg="#FFFFFF", height=416, width=689, bd=0, highlightthickness=0, relief="ridge")
-    canvas.place(x=0, y=0)
-
-    # Háttér téglalap
-    canvas.create_rectangle(0.0, 0.0, 689.0, 388.0, fill="#9F9F9F", outline="")
-    canvas.create_rectangle(0.0, 388.0, 689.0, 417.0, fill="#595959", outline="")
-
-    # Szöveg (Label) létrehozása és középre helyezése, az input_var alapján
-    boot_message = Label(canvas, text=input_var.get(), fg="#000000", bg="#E2E0FF", font=("Inter", 20))
-    boot_message.place(relx=0.5, rely=0.5, anchor="center")
-
-    # Kattintható téglalap
-    rectangle_id = canvas.create_rectangle(5.0, 111.0, 680.0, 377.0, fill="#E2E0FF", outline="black")
-    canvas.tag_bind(rectangle_id, "<Button-1>", rectangle_clicked)
-
-    # További téglalapok
-    canvas.create_rectangle(0.0, 392.0, 134.0, 413.0, fill="#CDCDCD", outline="")
-    canvas.create_rectangle(142.0, 392.0, 515.0, 413.0, fill="#CDCDCD", outline="")
-    canvas.create_rectangle(521.0, 392.0, 683.0, 413.0, fill="#CDCDCD", outline="")
 
 def show_boot_image(boot_frame):
     # Hátteret képpel helyettesítjük
@@ -149,34 +156,76 @@ def show_login_screen():
     boot_message_label.config(text="Kérem adja meg az azonosítóját!")
     input_var.set("")  # Töröljük az esetleges korábbi adatokat
     # Itt következhet a további bejelentkezési folyamat
-
+   
 def hide_input_elements():
     # Elrejtjük az input elemeket (gombok és input box)
     input_label.place_forget()
+    
     for button in number_buttons:
         button.place_forget()
-    clear_button.place_forget()
+        
     submit_button.place_forget()
 
 def display_route(vehicle_id):
     route = routes.get(vehicle_id, [])
     if route:
-        # Bal oldalon, lentől felfelé a járat megállók és érkezési idők
-        y_position = 300
-        for stop in route:
-            
-            stop_label = Label(window, text=f"{stop['stop']} - {stop['time']}", bg="#EAEAEA", fg="#000000", font=("Inter", 12))
-            stop_label.place(x=20, y=y_position)
-            y_position += 20
+        # Update the route number, name, and short number on the canvas
+        canvas.itemconfig(route_number_text, text=f"{vehicle_id}/")
+        canvas.itemconfig(route_name_text, text=f"{route[-1]['stop']}")
+        canvas.itemconfig(route_short_number_text, text=vehicle_id[:3])
+
+        # Initialize the start index for displaying stops
+        display_route.start_index = 0
+
+        def update_stops():
+            # Clear previous stop labels
+            for label in display_route.stop_labels:
+                label.place_forget()
+
+            # Display up to 5 stops starting from the current index
+            y_position = 200
+            for i in range(display_route.start_index, min(display_route.start_index + 5, len(route))):
+                stop = route[i]
+                stop_label = Label(window, text=f"{stop['stop']} - {stop['time']}", bg="#EAEAEA", fg="#000000", font=("Inter", 12))
+                stop_label.place(x=60, y=y_position)
+                display_route.stop_labels.append(stop_label)
+                y_position += 40
+
+        def scroll_up():
+            if display_route.start_index > 0:
+                display_route.start_index -= 1
+                update_stops()
+
+        def scroll_down():
+            if display_route.start_index + 5 < len(route):
+                display_route.start_index += 1
+                update_stops()
+
+        # Store stop labels for easy clearing
+        display_route.stop_labels = []
+
+        # Bind scroll buttons to their functions
+        button_15.config(command=lambda: [scroll_up(), play_button_click_sound()])
+        button_16.config(command=lambda: [scroll_down(), play_button_click_sound()])
+
+        # Initial update of stops
+        update_stops()
 
         # Jobb oldalon a "Hangok" szöveg
         sound_label = Label(window, text="Hangok", bg="#EAEAEA", fg="#000000", font=("Inter", 16))
         sound_label.place(x=500, y=300)
+
+        # Show images
+        canvas.itemconfig(image_1, state='normal')
+        canvas.itemconfig(image_2, state='normal')
     else:
-        route_display_label.place(x=20.0, y=140.0)
-        route_display_label.config(text="Nincs elérhető járat az adott járműazonosítóhoz.")
-    current_time = time.strftime("%H:%M:%S")
-    driver_info_label.config(text=f"Sofőr: {drivers.get('1', 'járműmozgató')}\nJárat: {vehicle_id}\nIdő: {current_time}")
+        canvas.itemconfig(route_number_text, text="0")
+        canvas.itemconfig(route_name_text, text="NEM SZALLIT UTASOKAT")
+        canvas.itemconfig(route_short_number_text, text="")
+
+        # Hide images
+        canvas.itemconfig(image_1, state='hidden')
+        canvas.itemconfig(image_2, state='hidden')
 
 
 
@@ -257,29 +306,29 @@ canvas.create_rectangle(
     fill="#595959",
     outline="")
 
-canvas.create_text(
+route_number_text = canvas.create_text(
     2.0,
     5.0,
     anchor="nw",
-    text="18100001/",
+    text="",
     fill="#000000",
     font=("Inter", 20 * -1)
 )
 
-canvas.create_text(
+route_name_text = canvas.create_text(
     0.0,
     27.0,
     anchor="nw",
-    text="EAF Ecseri-Aszódi u.",
+    text="",
     fill="#000000",
     font=("Inter", 20 * -1)
 )
 
-canvas.create_text(
+route_short_number_text = canvas.create_text(
     122.0,
     5.0,
     anchor="nw",
-    text="181",
+    text="",
     fill="#000000",
     font=("Inter", 20 * -1)
 )
@@ -306,7 +355,7 @@ canvas.create_text(
     188.0,
     5.0,
     anchor="nw",
-    text="1",
+    text="",
     fill="#000000",
     font=("Inter", 20 * -1)
 )
@@ -334,19 +383,41 @@ input_label.place(x=10.0, y=130.0)
 
 button_images = {}
 number_buttons = []
-
-# Adjusted order of buttons for 1-9 followed by 0
-button_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+# Adjusted order of buttons for 1-9 followed by clear, 0, and submit
+button_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 'clear', 0, 'submit']
 
 for i in button_order:
-    button_images[i] = PhotoImage(file=relative_to_assets(f"button_{i}.png"))
-    number_buttons.append(Button(
-        image=button_images[i],
-        borderwidth=0,
-        highlightthickness=0,
-        command=lambda num=i: [handle_number_input(num), play_button_click_sound()],  # Pittyegés minden gombnyomásnál
-        relief="flat"
-    ))
+    if i == 'clear':
+        button_images[i] = PhotoImage(file=relative_to_assets("button_clear.png"))
+        number_buttons.append(Button(
+            image=button_images[i],
+            borderwidth=0,
+            highlightthickness=0,
+            command=lambda: [clear_input(), play_button_click_sound()],
+            relief="flat"
+        ))
+    elif i == 'submit':
+        button_images[i] = PhotoImage(file=relative_to_assets("button_submit.png"))
+        number_buttons.append(Button(
+            image=button_images[i],
+            borderwidth=0,
+            highlightthickness=0,
+            command=lambda: [submit_input(), play_button_click_sound()],
+            relief="flat"
+        ))
+    else:
+        button_images[i] = PhotoImage(file=relative_to_assets(f"button_{i}.png"))
+        number_buttons.append(Button(
+            image=button_images[i],
+            borderwidth=0,
+            highlightthickness=0,
+            command=lambda num=i: [handle_number_input(num), play_button_click_sound()],
+            relief="flat"
+        ))
+
+
+for button in number_buttons:
+    button.place_forget()
 
 # Place number buttons in a grid-like layout
 x_start, y_start = 345, 111
@@ -362,20 +433,6 @@ for idx, button in enumerate(number_buttons):
         height=button_height
     )
 
-clear_button_image = PhotoImage(file=relative_to_assets("button_clear.png"))
-clear_button = Button(
-    image=clear_button_image,
-    borderwidth=0,
-    highlightthickness=0,
-    command=lambda: [clear_input(), play_button_click_sound()],  # Pittyegés a törlésnél is
-    relief="flat"
-)
-clear_button.place(
-    x=433.0,
-    y=291.0,
-    width=82.0,
-    height=52.0
-)
 
 canvas.create_rectangle(
     0.0,
@@ -442,61 +499,78 @@ button_12.place(
     height=23.0
 )
 
-route_display_label = Label(window,text="",bg="#9F9F9F",fg="#000000",font=("Inter", 16))
-route_display_label.place_forget()
 
 
-driver_info_label = Label(window,text="",bg="#9F9F9F",fg="#000000",font=("Inter", 16))
-driver_info_label.place(x=500.0, y=60.0)
 
 
+button_image_15 = PhotoImage(file=relative_to_assets("button_15.png"))
+button_15 = Button(image=button_image_15, borderwidth=0, highlightthickness=0, command=lambda: print("button_15 clicked"), relief="flat")
+button_15.place(x=306.0, y=113.0, width=34.0, height=30.741180419921875)
+
+button_image_16 = PhotoImage(file=relative_to_assets("button_16.png"))
+button_16 = Button(image=button_image_16, borderwidth=0, highlightthickness=0, command=lambda: print("button_16 clicked"), relief="flat")
+button_16.place(x=306.0, y=353.0, width=34.0, height=30.741180419921875)
+
+button_image_17 = PhotoImage(file=relative_to_assets("button_17.png"))
+button_17 = Button(image=button_image_17, borderwidth=0, highlightthickness=0, command=lambda: print("button_17 clicked"), relief="flat")
+button_17.place(x=654.0, y=112.0, width=34.0, height=30.741180419921875)
+
+button_image_18 = PhotoImage(file=relative_to_assets("button_18.png"))
+button_18 = Button(image=button_image_18, borderwidth=0, highlightthickness=0, command=lambda: print("button_18 clicked"), relief="flat")
+button_18.place(x=654.0, y=352.0, width=34.0, height=30.741180419921875)
+
+button_image_task = PhotoImage(file=relative_to_assets("button_task.png"))
+button_task = Button(image=button_image_task, borderwidth=0, highlightthickness=0, command=lambda: print("Tevekenyseg clicked"), relief="flat")
+button_task.place(x=2.0, y=51.0, width=134.0, height=54.78265380859375)
+
+button_image_send_messages = PhotoImage(file=relative_to_assets("button_sendmessages.png"))
+button_send_messages = Button(image=button_image_send_messages, borderwidth=0, highlightthickness=0, command=lambda: print("Uzenet kuldes clicked"), relief="flat")
+button_send_messages.place(x=140.0, y=51.0, width=134.0, height=54.78265380859375)
+
+button_image_sounds = PhotoImage(file=relative_to_assets("button_22.png"))
+button_sounds = Button(image=button_image_sounds, borderwidth=0, highlightthickness=0, command=lambda: print("Tárolt hangok clicked"), relief="flat")
+button_sounds.place(x=278.0, y=51.0, width=134.0, height=54.78265380859375)
+
+button_image_settings = PhotoImage(file=relative_to_assets("button_settings.png"))
+button_settings = Button(image=button_image_settings, borderwidth=0, highlightthickness=0, command=lambda: print("Beallitasok clicked"), relief="flat")
+button_settings.place(x=416.0, y=51.0, width=134.0, height=54.78265380859375)
+
+button_image_messages = PhotoImage(file=relative_to_assets("button_messages.png"))
+button_messages = Button(image=button_image_messages, borderwidth=0, highlightthickness=0, command=lambda: print("Uzenetek clicked"), relief="flat")
+button_messages.place(x=554.0, y=51.0, width=134.0, height=54.78265380859375)
+
+
+# Gombokat tartalmazó lista
+operation_buttons = [
+    (button_15, 306.0, 113.0),
+    (button_16, 306.0, 353.0),
+    (button_17, 654.0, 112.0),
+    (button_18, 654.0, 352.0),
+    (button_task, 2.0, 51.0),
+    (button_send_messages, 140.0, 51.0),
+    (button_sounds, 278.0, 51.0),
+    (button_settings, 416.0, 51.0),
+    (button_messages, 554.0, 51.0),
+]
+
+# Függvény, hogy megjelenítsd az összes gombot
+def show_operation_buttons():
+    for button, x, y in operation_buttons:
+        button.place(x=x, y=y)
+
+# Függvény, hogy elrejtsd az összes gombot
+def hide_operation_buttons():
+    for button, _, _ in operation_buttons:
+        button.place_forget()
 
 
 image_image_1 = PhotoImage(file=relative_to_assets("image_1.png"))
 image_1 = canvas.create_image(323.0,252.0,image=image_image_1)
-
-button_image_15 = PhotoImage(file=relative_to_assets("button_15.png"))
-button_15 = Button(image=button_image_15,borderwidth=0,highlightthickness=0,command=lambda: print("button_15 clicked"),relief="flat")
-button_15.place(x=306.0,y=113.0,width=34.0,height=30.741180419921875)
-
-
-button_image_16 = PhotoImage(file=relative_to_assets("button_16.png"))
-button_16 = Button(image=button_image_16,borderwidth=0,highlightthickness=0,command=lambda: print("button_16 clicked"),relief="flat")
-button_16.place(x=306.0,y=353.0,width=34.0,height=30.741180419921875)
-
-button_image_17 = PhotoImage(file=relative_to_assets("button_17.png"))
-button_17 = Button(image=button_image_17,borderwidth=0,highlightthickness=0,command=lambda: print("button_17 clicked"),relief="flat")
-button_17.place(x=654.0,y=112.0,width=34.0,height=30.741180419921875)
-
-button_image_18 = PhotoImage(file=relative_to_assets("button_18.png"))
-button_18 = Button(image=button_image_18,borderwidth=0,highlightthickness=0,command=lambda: print("button_18 clicked"),relief="flat")
-button_18.place(x=654.0,y=352.0,width=34.0,height=30.741180419921875)
-
-button_image_task = PhotoImage(file=relative_to_assets("button_task.png"))
-button_task = Button(image=button_image_task,borderwidth=0,highlightthickness=0,command=lambda: print("Tevekenyseg clicked"),relief="flat")
-button_task.place(x=2.0,y=51.0,width=134.0,height=54.78265380859375)
-
-
-button_image_send_messages = PhotoImage(file=relative_to_assets("button_sendmessages.png"))
-button_send_messages = Button(image=button_image_send_messages,borderwidth=0,highlightthickness=0,command=lambda: print("Uzenet kuldes clicked"),relief="flat")
-button_send_messages.place(x=140.0,y=51.0,width=134.0,height=54.78265380859375)
-
-button_image_sounds = PhotoImage(file=relative_to_assets("button_22.png"))
-button_sounds = Button(image=button_image_sounds,borderwidth=0,highlightthickness=0,command=lambda: print("Tárolt hangok clicked"),relief="flat")
-button_sounds.place(x=278.0,y=51.0,width=134.0,height=54.78265380859375)
-
-
-button_image_settings = PhotoImage(file=relative_to_assets("button_settings.png"))
-button_settings = Button(image=button_image_settings,borderwidth=0,highlightthickness=0,command=lambda: print("Beallitasok clicked"),relief="flat")
-button_settings.place(x=416.0,y=51.0,width=134.0,height=54.78265380859375)
-
-
-button_image_messages = PhotoImage(file=relative_to_assets("button_messages.png"))
-button_messages = Button(image=button_image_messages,borderwidth=0,highlightthickness=0,command=lambda: print("Uzenetek clicked"),relief="flat")
-button_messages.place(x=554.0,y=51.0,width=134.0,height=54.78265380859375)
+canvas.itemconfig(image_1, state='hidden')
 
 image_image_2 = PhotoImage(file=relative_to_assets("image_2.png"))
-image_2 = canvas.create_image(46.61248779296875,248.0,image=image_image_2)
+image_2 = canvas.create_image(46.61248779296875, 248.0, image=image_image_2)
+canvas.itemconfig(image_2, state='hidden')
 
 
 canvas.create_rectangle(
@@ -513,44 +587,66 @@ canvas.create_rectangle(
 # Data setup
 drivers = {"1": "járműmozgató", "5678": "ttk"}
 routes = {
-    "10500001": [
+    "23700001": [
+        {"stop": "Szentlélek tér H", "time": "N/A"},
+        {"stop": "Serfőző utca", "time": "N/A"},
+        {"stop": "Flórián tér", "time": "N/A"},
+        {"stop": "Szőlő utca", "time": "N/A"},
+        {"stop": "Óbudai rendelőintézet", "time": "N/A"},
+        {"stop": "Bécsi út / Vörösvári út", "time": "N/A"},
+        {"stop": "Táborhegyi út", "time": "N/A"},
+        {"stop": "Zúzmara utca", "time": "N/A"},
+        {"stop": "Királyhelmec utca", "time": "N/A"},
+        {"stop": "Farkastorki út", "time": "N/A"},
+        {"stop": "Judit utca", "time": "N/A"},
+        {"stop": "Laborc utca", "time": "N/A"},
+        {"stop": "Jablonka út 58.", "time": "N/A"},
+        {"stop": "Jablonka út 74.", "time": "N/A"},
+        {"stop": "Jablonka út", "time": "N/A", "terminal": True}
+    ],
+    "10500002": [
         {"stop": "Kossuth tér", "time": "08:00"},
         {"stop": "Deák tér", "time": "08:10"},
         {"stop": "Astoria", "time": "08:20"},
-        {"stop": "Blaha Lujza tér", "time": "08:30"}
+        {"stop": "Blaha Lujza tér", "time": "08:30", "terminal": True}
     ],
     "21300001": [
         {"stop": "Nyugati", "time": "09:00"},
         {"stop": "Oktogon", "time": "09:10"},
         {"stop": "Vörösmarty tér", "time": "09:20"},
-        {"stop": "Erzsébet tér", "time": "09:30"}
+        {"stop": "Erzsébet tér", "time": "09:30", "terminal": True}
     ],
     "30100001": [
         {"stop": "Keleti pályaudvar", "time": "10:00"},
         {"stop": "Blaha Lujza tér", "time": "10:10"},
         {"stop": "Astoria", "time": "10:20"},
-        {"stop": "Deák tér", "time": "10:30"}
+        {"stop": "Deák tér", "time": "10:30", "terminal": True}
     ],
     "40200001": [
         {"stop": "Déli pályaudvar", "time": "11:00"},
         {"stop": "Móricz Zsigmond körtér", "time": "11:10"},
         {"stop": "Újbuda-központ", "time": "11:20"},
-        {"stop": "Szent Gellért tér", "time": "11:30"}
+        {"stop": "Szent Gellért tér", "time": "11:30", "terminal": True}
     ],
     "50300001": [
         {"stop": "Hősök tere", "time": "12:00"},
         {"stop": "Andrássy út", "time": "12:10"},
         {"stop": "Oktogon", "time": "12:20"},
-        {"stop": "Nyugati", "time": "12:30"}
+        {"stop": "Nyugati", "time": "12:30", "terminal": True}
     ]
 }
+
+
 
 current_step = "driver_id"
 
 window.resizable(False, False)
 
 show_boot_screen()
+
 update_current_time()
 update_current_date()
-""" display_route('10500001') """
+hide_operation_buttons()
+""" display_route('23700001') """
+
 window.mainloop()
