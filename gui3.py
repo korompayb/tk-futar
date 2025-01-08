@@ -1,4 +1,5 @@
 import time
+import json
 import os
 from datetime import datetime
 import pygame
@@ -54,7 +55,7 @@ def handle_number_input(number):
 
 def clear_input():
     input_var.set("")
-
+    
 def handle_driver_id(input_value):
     """Kezeli a sofőrazonosító megadását."""
     if input_value in drivers:
@@ -66,6 +67,7 @@ def handle_driver_id(input_value):
     else:
         boot_message_label.config(text="Hibás sofőrazonosító!", fg="red")
         play_error_sound()
+        input_var.set("")  # Clear invalid input
         window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg az azonosítóját!", fg="black"))
         return "driver_id"
 
@@ -75,12 +77,13 @@ def handle_vehicle_id(input_value):
         boot_message_label.config(text="Járat megadva", fg="green")
         display_route(input_value)
         show_operation_buttons()
-        hide_input_elements()  # Elrejtjük a további beviteli mezőket
+        hide_input_elements()  
         play_button_click_sound()
         return "completed"
     else:
         boot_message_label.config(text="Hibás járműazonosító!", fg="red")
         play_error_sound()
+        input_var.set("")  # Clear invalid input
         window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black"))
         return "vehicle_id"
 
@@ -88,15 +91,26 @@ def submit_input():
     """Fő input kezelő, amely a lépésekhez irányít."""
     global current_step
     input_value = input_var.get()
+    
+    if not input_value:  # Skip if input is empty
+        return
+        
     if current_step == "driver_id":
         current_step = handle_driver_id(input_value)
     elif current_step == "vehicle_id":
         current_step = handle_vehicle_id(input_value)
     elif current_step == "confirm_driver_id":
-        display_route(input_value)
-        show_operation_buttons()
-        hide_input_elements()
-        current_step = "vehicle_id"
+        if input_value in routes:  # Only proceed if valid vehicle ID
+            display_route(input_value)
+            show_operation_buttons()
+            hide_input_elements()
+            current_step = "completed"
+        else:
+            boot_message_label.config(text="Hibás járműazonosító!", fg="red")
+            play_error_sound()
+            input_var.set("")
+            window.after(2000, lambda: boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black"))
+            current_step = "vehicle_id"
 
 def show_confirm_screen(input_value):
     """Megjeleníti a megerősítő képernyőt a sofőrazonosítóval."""
@@ -104,67 +118,58 @@ def show_confirm_screen(input_value):
     confirm_frame = Frame(window, bg="#9F9F9F", width=689, height=416)
     confirm_frame.place(x=0, y=0)
 
-     # Kattintható téglalap
+    # Canvas létrehozása a téglalapoknak
+    canvas_confirm = Canvas(confirm_frame, width=689, height=416, bg="#9F9F9F", highlightthickness=0)
+    canvas_confirm.place(x=0, y=0)
+
+    canvas_confirm.create_rectangle(
+        0.0,
+        392.0,
+        134.0,
+        413.0,
+        fill="#CDCDCD",
+        outline=""
+    )
+
+    canvas_confirm.create_rectangle(
+        142.0,
+        392.0,
+        515.0,
+        413.0,
+        fill="#CDCDCD",
+        outline=""
+    )
+
+    canvas_confirm.create_rectangle(
+        521.0,
+        392.0,
+        603.0,
+        413.0,
+        fill="#CDCDCD",
+        outline=""
+    )
+
+    # Kattintható téglalap
     rectangle_id = Canvas(confirm_frame, width=680, height=266, bg="#E2E0FF", highlightthickness=0)
     rectangle_id.place(x=5, y=111)
     rectangle_id.bind("<Button-1>", lambda e: proceed_to_vehicle_id(confirm_frame))
 
-    # Szöveg (Label) létrehozása és középre helyezése, az input_value alapján
-    confirm_message = Label(confirm_frame, text=f"{input_value}", fg="#000000", bg="#E2E0FF", font=("Inter", 20))
+    display_name = "járműmozgató" if input_value == "1" else input_value
+
+    # Szöveg (Label) létrehozása és középre helyezése
+    confirm_message = Label(confirm_frame, text=f"{display_name}", fg="#000000", bg="#E2E0FF", font=("Inter", 20))
     confirm_message.place(relx=0.5, rely=0.5, anchor="center")
 
-   
-
 def proceed_to_vehicle_id(confirm_frame):
-    """Továbbhalad a járműazonosító megadására és visszaállítja az elemeket."""
+    """Továbbhalad a járműazonosító megadására."""
+    global current_step
+    play_button_click_sound()
     confirm_frame.destroy()
     boot_message_label.config(text="Kérem adja meg a járműazonosítót!", fg="black")
     input_var.set("")
-    
     current_step = "vehicle_id"
 
-def show_boot_screen():
-    # Főkeret a teljes ablak lefedéséhez
-    boot_frame = Frame(window, bg="#000000", width=689, height=416)
-    boot_frame.place(x=0, y=0)  # A frame elhelyezése az ablak bal felső sarkába
 
-    # Képernyő közepén megjelenő üzenet
-    boot_message = Label(boot_frame, text="IVU", fg="#FFFFFF", bg="#000000", font=("Inter", 20))
-    boot_message.place(relx=0.5, rely=0.5, anchor="center")  # Középre helyezzük a szöveget
-
-    # 1 másodperc után eltüntetjük az üzenetet
-    window.after(500, lambda: boot_message.place_forget())
-
-    # Hátteret képpel helyettesítjük, miután az üzenet eltűnt
-    window.after(500, lambda: show_boot_image(boot_frame))
-
-def show_boot_image(boot_frame):
-    # Hátteret képpel helyettesítjük
-    boot_image = PhotoImage(file=relative_to_assets("boot.png"))  # Az elérési út a képedhez
-    boot_background = Label(boot_frame, image=boot_image)
-    boot_background.image = boot_image  # Ne veszítsük el a referenciát a képről
-    boot_background.place(x=0, y=0, width=689, height=416)  # Kép kitöltése az ablak teljes területén
-
-    # 3 másodperc után eltüntetjük a képet és folytatódik a bejelentkezési képernyő
-    window.after(500, lambda: boot_frame.destroy())  # Eltünteti a hátteret és a boot képernyőt
-    window.after(500, lambda: show_login_screen())  # A bejelentkezési képernyő következik
-
-
-def show_login_screen():
-    # Visszaállítjuk az ablakot a bejelentkezési képernyőre
-    window.configure(bg="#FFFFFF")
-    boot_message_label.config(text="Kérem adja meg az azonosítóját!")
-    input_var.set("")  # Töröljük az esetleges korábbi adatokat
-    # Itt következhet a további bejelentkezési folyamat
-   
-def hide_input_elements():
-    # Elrejtjük az input elemeket (gombok és input box)
-    input_label.place_forget()
-    
-    for button in number_buttons:
-        button.place_forget()
-        
-    submit_button.place_forget()
 
 def display_route(vehicle_id):
     route = routes.get(vehicle_id, [])
@@ -211,9 +216,7 @@ def display_route(vehicle_id):
         # Initial update of stops
         update_stops()
 
-        # Jobb oldalon a "Hangok" szöveg
-        sound_label = Label(window, text="Hangok", bg="#EAEAEA", fg="#000000", font=("Inter", 16))
-        sound_label.place(x=500, y=300)
+        
 
         # Show images
         canvas.itemconfig(image_1, state='normal')
@@ -227,6 +230,50 @@ def display_route(vehicle_id):
         canvas.itemconfig(image_1, state='hidden')
         canvas.itemconfig(image_2, state='hidden')
 
+
+
+def show_boot_screen():
+    # Főkeret a teljes ablak lefedéséhez
+    boot_frame = Frame(window, bg="#000000", width=689, height=416)
+    boot_frame.place(x=0, y=0)  # A frame elhelyezése az ablak bal felső sarkába
+
+    # Képernyő közepén megjelenő üzenet
+    boot_message = Label(boot_frame, text="IVU", fg="#FFFFFF", bg="#000000", font=("Inter", 20))
+    boot_message.place(relx=0.5, rely=0.5, anchor="center")  # Középre helyezzük a szöveget
+
+    # 1 másodperc után eltüntetjük az üzenetet
+    window.after(500, lambda: boot_message.place_forget())
+
+    # Hátteret képpel helyettesítjük, miután az üzenet eltűnt
+    window.after(500, lambda: show_boot_image(boot_frame))
+
+def show_boot_image(boot_frame):
+    # Hátteret képpel helyettesítjük
+    boot_image = PhotoImage(file=relative_to_assets("boot.png"))  # Az elérési út a képedhez
+    boot_background = Label(boot_frame, image=boot_image)
+    boot_background.image = boot_image  # Ne veszítsük el a referenciát a képről
+    boot_background.place(x=0, y=0, width=689, height=416)  # Kép kitöltése az ablak teljes területén
+
+    # 3 másodperc után eltüntetjük a képet és folytatódik a bejelentkezési képernyő
+    window.after(500, lambda: boot_frame.destroy())  # Eltünteti a hátteret és a boot képernyőt
+    window.after(500, lambda: show_login_screen())  # A bejelentkezési képernyő következik
+
+
+def show_login_screen():
+    # Visszaállítjuk az ablakot a bejelentkezési képernyőre
+    window.configure(bg="#FFFFFF")
+    boot_message_label.config(text="Kérem adja meg az azonosítóját!")
+    input_var.set("")  # Töröljük az esetleges korábbi adatokat
+    # Itt következhet a további bejelentkezési folyamat
+   
+def hide_input_elements():
+    # Elrejtjük az input elemeket (gombok és input box)
+    input_label.place_forget()
+    
+    for button in number_buttons:
+        button.place_forget()
+        
+    submit_button.place_forget()
 
 
 
@@ -502,7 +549,6 @@ button_12.place(
 
 
 
-
 button_image_15 = PhotoImage(file=relative_to_assets("button_15.png"))
 button_15 = Button(image=button_image_15, borderwidth=0, highlightthickness=0, command=lambda: print("button_15 clicked"), relief="flat")
 button_15.place(x=306.0, y=113.0, width=34.0, height=30.741180419921875)
@@ -539,6 +585,22 @@ button_image_messages = PhotoImage(file=relative_to_assets("button_messages.png"
 button_messages = Button(image=button_image_messages, borderwidth=0, highlightthickness=0, command=lambda: print("Uzenetek clicked"), relief="flat")
 button_messages.place(x=554.0, y=51.0, width=134.0, height=54.78265380859375)
 
+button_image_menetrend = PhotoImage( file=relative_to_assets("button_menetrend.png")) 
+button_menetrend = Button( image=button_image_menetrend, borderwidth=0, highlightthickness=0, command=lambda: print("A mentrend betartása érdekében várakozunk"), relief="flat" ) 
+button_menetrend.place( x=355.0, y=114.0, width=293.33349609375, height=55.0 ) 
+
+button_image_maszk = PhotoImage( file=relative_to_assets("button_maszk.png")) 
+button_maszk = Button( image=button_image_maszk, borderwidth=0, highlightthickness=0, command=lambda: print("A Korona virus miatt maszk viselése kötelező"), relief="flat" ) 
+button_maszk.place( x=355.0, y=175.0, width=293.33349609375, height=55.0 ) 
+
+button_image_ajto = PhotoImage( file=relative_to_assets("button_ajto_var.png")) 
+button_ajto = Button( image=button_image_ajto, borderwidth=0, highlightthickness=0, command=lambda: print("Ajto zarva, allunk varunk"), relief="flat" ) 
+button_ajto.place( x=355.0, y=236.0, width=293.33349609375, height=55.0 ) 
+
+button_image_beallas = PhotoImage( file=relative_to_assets("button_nem_tud_beallni.png")) 
+button_beallas = Button( image=button_image_beallas, borderwidth=0, highlightthickness=0, command=lambda: print("A jarmu nem tud beallni, ovatosan a felszallassal"), relief="flat" ) 
+button_beallas.place( x=354.0, y=297.0, width=293.33349609375, height=55.0 )
+
 
 # Gombokat tartalmazó lista
 operation_buttons = [
@@ -551,15 +613,24 @@ operation_buttons = [
     (button_sounds, 278.0, 51.0),
     (button_settings, 416.0, 51.0),
     (button_messages, 554.0, 51.0),
+    (button_menetrend, 355.0, 114.0),
+    (button_maszk, 355.0, 175.0),
+    (button_ajto, 355.0, 236.0),
+    (button_beallas, 354.0, 297.0),
+
 ]
+    
 
 # Függvény, hogy megjelenítsd az összes gombot
 def show_operation_buttons():
+
+
     for button, x, y in operation_buttons:
         button.place(x=x, y=y)
 
 # Függvény, hogy elrejtsd az összes gombot
 def hide_operation_buttons():
+
     for button, _, _ in operation_buttons:
         button.place_forget()
 
@@ -586,56 +657,10 @@ canvas.create_rectangle(
 
 # Data setup
 drivers = {"1": "járműmozgató", "5678": "ttk"}
-routes = {
-    "23700001": [
-        {"stop": "Szentlélek tér H", "time": "N/A"},
-        {"stop": "Serfőző utca", "time": "N/A"},
-        {"stop": "Flórián tér", "time": "N/A"},
-        {"stop": "Szőlő utca", "time": "N/A"},
-        {"stop": "Óbudai rendelőintézet", "time": "N/A"},
-        {"stop": "Bécsi út / Vörösvári út", "time": "N/A"},
-        {"stop": "Táborhegyi út", "time": "N/A"},
-        {"stop": "Zúzmara utca", "time": "N/A"},
-        {"stop": "Királyhelmec utca", "time": "N/A"},
-        {"stop": "Farkastorki út", "time": "N/A"},
-        {"stop": "Judit utca", "time": "N/A"},
-        {"stop": "Laborc utca", "time": "N/A"},
-        {"stop": "Jablonka út 58.", "time": "N/A"},
-        {"stop": "Jablonka út 74.", "time": "N/A"},
-        {"stop": "Jablonka út", "time": "N/A", "terminal": True}
-    ],
-    "10500002": [
-        {"stop": "Kossuth tér", "time": "08:00"},
-        {"stop": "Deák tér", "time": "08:10"},
-        {"stop": "Astoria", "time": "08:20"},
-        {"stop": "Blaha Lujza tér", "time": "08:30", "terminal": True}
-    ],
-    "21300001": [
-        {"stop": "Nyugati", "time": "09:00"},
-        {"stop": "Oktogon", "time": "09:10"},
-        {"stop": "Vörösmarty tér", "time": "09:20"},
-        {"stop": "Erzsébet tér", "time": "09:30", "terminal": True}
-    ],
-    "30100001": [
-        {"stop": "Keleti pályaudvar", "time": "10:00"},
-        {"stop": "Blaha Lujza tér", "time": "10:10"},
-        {"stop": "Astoria", "time": "10:20"},
-        {"stop": "Deák tér", "time": "10:30", "terminal": True}
-    ],
-    "40200001": [
-        {"stop": "Déli pályaudvar", "time": "11:00"},
-        {"stop": "Móricz Zsigmond körtér", "time": "11:10"},
-        {"stop": "Újbuda-központ", "time": "11:20"},
-        {"stop": "Szent Gellért tér", "time": "11:30", "terminal": True}
-    ],
-    "50300001": [
-        {"stop": "Hősök tere", "time": "12:00"},
-        {"stop": "Andrássy út", "time": "12:10"},
-        {"stop": "Oktogon", "time": "12:20"},
-        {"stop": "Nyugati", "time": "12:30", "terminal": True}
-    ]
-}
+path = 'forgalmi.json'
 
+with open(path, 'r') as file:
+    routes = json.load(file)
 
 
 current_step = "driver_id"
