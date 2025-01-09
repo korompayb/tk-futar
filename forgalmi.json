@@ -1,0 +1,26 @@
+{
+    "10500001": [
+        {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
+        {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
+        {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},
+        {"stop": "Blaha Lujza tér", "time": "08:30", "terminal": true, "wav": "blaha_lujza_ter.wav"}
+    ],
+    "23700001": [
+        {"stop": "Szentlélek tér H LE", "time": "N/A", "wav": "szentlelek_ter_leszallohely.wav"},
+        {"stop": "Szentlélek tér H", "time": "N/A", "wav": "szentlelek_ter.wav"},
+        {"stop": "Serfőző utca", "time": "N/A", "wav": "serfozo_utca.wav"},
+        {"stop": "Flórián tér", "time": "N/A", "wav": "florian_ter.wav"},
+        {"stop": "Szőlő utca", "time": "N/A", "wav": "szolo_utca.wav"},
+        {"stop": "Óbudai rendelőintézet", "time": "N/A", "wav": "obudai_rendelointezet.wav"},
+        {"stop": "Bécsi út / Vörösvári út", "time": "N/A", "wav": "becsi_ut_vorosvari_ut.wav"},
+        {"stop": "Táborhegyi út", "time": "N/A", "wav": "taborhegyi_ut.wav"},
+        {"stop": "Zúzmara utca", "time": "N/A", "wav": "zuzmara_utca.wav"},
+        {"stop": "Királyhelmec utca", "time": "N/A", "wav": "kiralyhelmec_utca.wav"},
+        {"stop": "Farkastorki út", "time": "N/A", "wav": "farkastorki_ut.wav"},
+        {"stop": "Judit utca", "time": "N/A", "wav": "judit_utca.wav"},
+        {"stop": "Laborc utca", "time": "N/A", "wav": "laborc_utca.wav"},
+        {"stop": "Jablonka út 58.", "time": "N/A", "wav": "jablonka_ut_58.wav"},
+        {"stop": "Jablonka út 74.", "time": "N/A", "wav": "jablonka_ut_74.wav"},
+        {"stop": "Jablonka út", "time": "N/A", "terminal": true, "wav": "jablonka_ut.wav"}
+    ]
+}

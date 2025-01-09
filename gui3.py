@@ -27,11 +27,41 @@ print("ELINDULT A PROGRAM")
 
 button_click_sound = relative_to_assets("bkkfutar_btnpress.wav")
 error_sound = relative_to_assets("bkkfutar_longpiep.wav")
+covid_sound = relative_to_assets("sounds/Covid-19.wav")
+nem_tud_beallni_sound = relative_to_assets("sounds/Nem_tud_beallni.wav")
+udvozoljuk_sound = relative_to_assets("sounds/Udvozoljuk.wav")
+a_kovetkezo_megallo_sound = relative_to_assets("sounds/Kovetkezo.wav")
+viszontlatasra_sound = relative_to_assets("sounds/Viszontlatasra.wav")
+menetrend_allunk_sound = relative_to_assets("sounds/Részindulás, rövid ideig vár.wav")
+elottunk_baleset_sound = relative_to_assets("sounds/Elottünk baleset, állunk.wav")
 
+def play_viszontlatasra_sound():
+    pygame.mixer.Sound(str(viszontlatasra_sound)).play()
 
+def play_udvozoljuk_sound():
+    pygame.mixer.Sound(str(udvozoljuk_sound)).play()
 
+def play_menetrend_allunk_sound():
+    pygame.mixer.Sound(str(menetrend_allunk_sound)).play()
 
+def play_next_stop_name(stop_name):
+    # Look up the wav file from the routes data 
+    for route in routes.values():
+        for stop in route:
+            if stop["stop"] == stop_name and "wav" in stop:
+                stop_path = relative_to_assets(f"sounds/megallohangok/{stop['wav']}")
+                print(stop_path)
+                if stop_path.exists():
+                    pygame.mixer.Sound(str(a_kovetkezo_megallo_sound)).play()
+                    time.sleep(2)  # Wait for announcement to finish
+                    pygame.mixer.Sound(str(stop_path)).play()
+                return
 
+def play_covid_sound():
+    pygame.mixer.Sound(str(covid_sound)).play()
+
+def play_nem_tud_beallni_sound():
+    pygame.mixer.Sound(str(nem_tud_beallni_sound)).play()
 
 
 def play_button_click_sound():
@@ -170,45 +200,59 @@ def proceed_to_vehicle_id(confirm_frame):
     current_step = "vehicle_id"
 
 
-
 def display_route(vehicle_id):
     route = routes.get(vehicle_id, [])
     if route:
-        # Update the route number, name, and short number on the canvas
+        # Update the route number, name, and short number on the canvas 
         canvas.itemconfig(route_number_text, text=f"{vehicle_id}/")
-        canvas.itemconfig(route_name_text, text=f"{route[-1]['stop']}")
+        canvas.itemconfig(route_name_text, text=f"{route[-1]['stop']}")  # Last stop as destination
         canvas.itemconfig(route_short_number_text, text=vehicle_id[:3])
 
         # Initialize the start index for displaying stops
         display_route.start_index = 0
+        display_route.last_next_stop = None
 
         def update_stops():
             # Clear previous stop labels
             for label in display_route.stop_labels:
                 label.place_forget()
 
-            # Display up to 5 stops starting from the current index
-            y_position = 200
-            for i in range(display_route.start_index, min(display_route.start_index + 5, len(route))):
+            # Display up to 5 stops from bottom to top
+            y_position = 350  # Start from bottom
+            visible_stops = list(range(display_route.start_index, min(display_route.start_index + 5, len(route))))
+            
+            # Display stops in normal order (not reversed)
+            for i in visible_stops:
                 stop = route[i]
-                stop_label = Label(window, text=f"{stop['stop']} - {stop['time']}", bg="#EAEAEA", fg="#000000", font=("Inter", 12))
+                # First stop (current stop) gets yellow background, others get gray
+                bg_color = "#FFFF00" if i == display_route.start_index + 1 else "#CDCDCD"
+                stop_label = Label(window, text=f"{stop['stop']}", bg=bg_color, fg="#000000", font=("Inter", 12),padx=10, pady=7, width=27, anchor="w")
                 stop_label.place(x=60, y=y_position)
                 display_route.stop_labels.append(stop_label)
-                y_position += 40
+                y_position -= 40  # Move up for next label
 
-        def scroll_up():
+            # Check if next stop has changed
+            if display_route.start_index + 1 < len(route):
+                next_stop = route[display_route.start_index + 1]['stop']
+                if next_stop != display_route.last_next_stop:
+                    display_route.last_next_stop = next_stop
+                    play_next_stop_name(next_stop)
+
+        def scroll_down():
             if display_route.start_index > 0:
                 display_route.start_index -= 1
                 update_stops()
 
-        def scroll_down():
+        def scroll_up():
             if display_route.start_index + 5 < len(route):
                 display_route.start_index += 1
                 update_stops()
 
         # Store stop labels for easy clearing
         display_route.stop_labels = []
-
+        play_udvozoljuk_sound()
+        time.sleep(2)  # Wait for the greeting to finish
+        
         # Bind scroll buttons to their functions
         button_15.config(command=lambda: [scroll_up(), play_button_click_sound()])
         button_16.config(command=lambda: [scroll_down(), play_button_click_sound()])
@@ -216,11 +260,10 @@ def display_route(vehicle_id):
         # Initial update of stops
         update_stops()
 
-        
-
         # Show images
         canvas.itemconfig(image_1, state='normal')
         canvas.itemconfig(image_2, state='normal')
+        
     else:
         canvas.itemconfig(route_number_text, text="0")
         canvas.itemconfig(route_name_text, text="NEM SZALLIT UTASOKAT")
@@ -229,8 +272,6 @@ def display_route(vehicle_id):
         # Hide images
         canvas.itemconfig(image_1, state='hidden')
         canvas.itemconfig(image_2, state='hidden')
-
-
 
 def show_boot_screen():
     # Főkeret a teljes ablak lefedéséhez
@@ -590,7 +631,7 @@ button_menetrend = Button( image=button_image_menetrend, borderwidth=0, highligh
 button_menetrend.place( x=355.0, y=114.0, width=293.33349609375, height=55.0 ) 
 
 button_image_maszk = PhotoImage( file=relative_to_assets("button_maszk.png")) 
-button_maszk = Button( image=button_image_maszk, borderwidth=0, highlightthickness=0, command=lambda: print("A Korona virus miatt maszk viselése kötelező"), relief="flat" ) 
+button_maszk = Button( image=button_image_maszk, borderwidth=0, highlightthickness=0, command=lambda: [print("A Korona virus miatt maszk viselése kötelező"), play_covid_sound()], relief="flat") 
 button_maszk.place( x=355.0, y=175.0, width=293.33349609375, height=55.0 ) 
 
 button_image_ajto = PhotoImage( file=relative_to_assets("button_ajto_var.png")) 
@@ -598,7 +639,7 @@ button_ajto = Button( image=button_image_ajto, borderwidth=0, highlightthickness
 button_ajto.place( x=355.0, y=236.0, width=293.33349609375, height=55.0 ) 
 
 button_image_beallas = PhotoImage( file=relative_to_assets("button_nem_tud_beallni.png")) 
-button_beallas = Button( image=button_image_beallas, borderwidth=0, highlightthickness=0, command=lambda: print("A jarmu nem tud beallni, ovatosan a felszallassal"), relief="flat" ) 
+button_beallas = Button( image=button_image_beallas, borderwidth=0, highlightthickness=0, command=lambda: [print("A jarmu nem tud beallni, ovatosan a felszallassal"), play_nem_tud_beallni_sound()], relief="flat") 
 button_beallas.place( x=354.0, y=297.0, width=293.33349609375, height=55.0 )
 
 
