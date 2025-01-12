@@ -1,5 +1,21 @@
 {
+    "1": [
+        {"stop": "Nem szállít utasokat", "time": "N/A", "terminal": true, "wav": "nem_szallit_utasokat.wav"},
+        {"stop": "Nem szállít utasokat", "time": "N/A", "terminal": true, "wav": "nem_szallit_utasokat.wav"}
+    ],
     "10500001": [
+        {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
+        {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
+        {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},
+        {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
+        {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
+        {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},
+        {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
+        {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
+        {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},
+        {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
+        {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
+        {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},
         {"stop": "Kossuth tér", "time": "08:00", "wav": "kossuth_ter.wav"},
         {"stop": "Deák tér", "time": "08:10", "wav": "deak_ter.wav"},
         {"stop": "Astoria", "time": "08:20", "wav": "astoria.wav"},

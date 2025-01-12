@@ -30,6 +30,7 @@ error_sound = relative_to_assets("bkkfutar_longpiep.wav")
 covid_sound = relative_to_assets("sounds/Covid-19.wav")
 nem_tud_beallni_sound = relative_to_assets("sounds/Nem_tud_beallni.wav")
 udvozoljuk_sound = relative_to_assets("sounds/Udvozoljuk.wav")
+vegallomas_sound = relative_to_assets("sounds/Vegallomas.wav")
 a_kovetkezo_megallo_sound = relative_to_assets("sounds/Kovetkezo.wav")
 viszontlatasra_sound = relative_to_assets("sounds/Viszontlatasra.wav")
 menetrend_allunk_sound = relative_to_assets("sounds/Részindulás, rövid ideig vár.wav")
@@ -43,6 +44,9 @@ def play_udvozoljuk_sound():
 
 def play_menetrend_allunk_sound():
     pygame.mixer.Sound(str(menetrend_allunk_sound)).play()
+
+def play_vegallomas_sound():
+    pygame.mixer.Sound(str(vegallomas_sound)).play()
 
 def play_next_stop_name(stop_name):
     # Look up the wav file from the routes data 
@@ -85,6 +89,57 @@ def handle_number_input(number):
 
 def clear_input():
     input_var.set("")
+
+
+def logout():
+    """Handle driver logout and reset the interface"""
+    print("Kijelentkezve") 
+    play_viszontlatasra_sound()
+    display_route.end_announced = True
+    play_error_sound()
+    
+    # Reset canvas elements
+    canvas.itemconfig(route_number_text, text="")
+    canvas.itemconfig(route_name_text, text="") 
+    canvas.itemconfig(route_short_number_text, text="")
+    canvas.itemconfig(image_1, state='hidden')
+    canvas.itemconfig(image_2, state='hidden')
+    
+    # Remove stop labels
+    for label in display_route.stop_labels:
+        label.place_forget()
+    display_route.stop_labels = []
+    
+    # Reset display, show login screen and number pad
+    hide_operation_buttons()
+    boot_message_label.config(text="Kérem adja meg az azonosítóját!", fg="black")
+    input_var.set("")
+    input_label.place(x=10.0, y=130.0)
+    
+    # Show number buttons again
+    x_start, y_start = 345, 111
+    button_width, button_height = 82, 52  
+    spacing_x, spacing_y = 88, 60
+    
+    for idx, button in enumerate(number_buttons):
+        row, col = divmod(idx, 3)
+        button.place(
+            x=x_start + col * spacing_x,
+            y=y_start + row * spacing_y,
+            width=button_width,
+            height=button_height
+        )
+    
+    submit_button.place(
+        x=521.0,
+        y=291.0, 
+        width=82.0,
+        height=52.0
+    )
+    
+    global current_step
+    current_step = "driver_id"
+
     
 def handle_driver_id(input_value):
     """Kezeli a sofőrazonosító megadását."""
@@ -211,6 +266,7 @@ def display_route(vehicle_id):
         # Initialize the start index for displaying stops
         display_route.start_index = 0
         display_route.last_next_stop = None
+        display_route.end_announced = False
 
         def update_stops():
             # Clear previous stop labels
@@ -219,14 +275,18 @@ def display_route(vehicle_id):
 
             # Display up to 5 stops from bottom to top
             y_position = 350  # Start from bottom
-            visible_stops = list(range(display_route.start_index, min(display_route.start_index + 5, len(route))))
+            visible_stops = list(range(display_route.start_index, display_route.start_index + 5))
             
             # Display stops in normal order (not reversed)
             for i in visible_stops:
-                stop = route[i]
-                # First stop (current stop) gets yellow background, others get gray
-                bg_color = "#FFFF00" if i == display_route.start_index + 1 else "#CDCDCD"
-                stop_label = Label(window, text=f"{stop['stop']}", bg=bg_color, fg="#000000", font=("Inter", 12),padx=10, pady=7, width=27, anchor="w")
+                if i < len(route):
+                    stop = route[i]
+                    # First stop (current stop) gets yellow background, others get gray
+                    bg_color = "#FFFF00" if i == display_route.start_index + 1 else "#CDCDCD"
+                    stop_label = Label(window, text=f"{stop['stop']}", bg=bg_color, fg="#000000", font=("Inter", 12),padx=10, pady=7, width=27, anchor="w")
+                else:
+                    # Empty label for positions beyond route length
+                    stop_label = Label(window, text="", bg="#CDCDCD", fg="#000000", font=("Inter", 12),padx=10, pady=7, width=27, anchor="w")
                 stop_label.place(x=60, y=y_position)
                 display_route.stop_labels.append(stop_label)
                 y_position -= 40  # Move up for next label
@@ -237,6 +297,12 @@ def display_route(vehicle_id):
                 if next_stop != display_route.last_next_stop:
                     display_route.last_next_stop = next_stop
                     play_next_stop_name(next_stop)
+                    if display_route.start_index + 2 >= len(route):  # If this is the last stop
+                        time.sleep(2)  # Wait 2 seconds
+                        play_vegallomas_sound()  # Play end station announcement
+            # Check if we've reached the end
+            elif not display_route.end_announced:
+                logout()
 
         def scroll_down():
             if display_route.start_index > 0:
@@ -244,9 +310,8 @@ def display_route(vehicle_id):
                 update_stops()
 
         def scroll_up():
-            if display_route.start_index + 5 < len(route):
-                display_route.start_index += 1
-                update_stops()
+            display_route.start_index += 1
+            update_stops()
 
         # Store stop labels for easy clearing
         display_route.stop_labels = []
@@ -607,7 +672,7 @@ button_18 = Button(image=button_image_18, borderwidth=0, highlightthickness=0, c
 button_18.place(x=654.0, y=352.0, width=34.0, height=30.741180419921875)
 
 button_image_task = PhotoImage(file=relative_to_assets("button_task.png"))
-button_task = Button(image=button_image_task, borderwidth=0, highlightthickness=0, command=lambda: print("Tevekenyseg clicked"), relief="flat")
+button_task = Button(image=button_image_task, borderwidth=0, highlightthickness=0, command=lambda: [print("Tevekenyseg clicked") ,logout()], relief="flat")
 button_task.place(x=2.0, y=51.0, width=134.0, height=54.78265380859375)
 
 button_image_send_messages = PhotoImage(file=relative_to_assets("button_sendmessages.png"))
